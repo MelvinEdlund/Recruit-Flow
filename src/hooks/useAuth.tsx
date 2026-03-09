@@ -7,8 +7,8 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import type { Role } from "@/services/authService";
+import { supabase } from "@/lib/supabase";
 import {
-  getSessionWithProfile,
   listenToAuthChanges,
   login as authLogin,
   logout as authLogout,
@@ -60,22 +60,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    // Fallback: om Supabase inte svarar inom 5s, visa appen ändå
-    const fallback = setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 5000);
-
     (async () => {
+      // Steg 1: Hämta session från localStorage – snabb, ingen nätverksanrop
+      // om token är giltig. Sätter loading=false direkt när vi vet user-status.
       try {
-        const state = await getSessionWithProfile();
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<any>((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 4000),
+          ),
+        ]);
         if (!isMounted) return;
-        setSession(state.session);
-        setUser(state.user);
-        setRole(state.role);
-      } catch (error) {
-        console.error("Failed to fetch session/profile", error);
-      } finally {
-        clearTimeout(fallback);
+        const user = session?.user ?? null;
+        setSession(session);
+        setUser(user);
+        setLoading(false); // Visa appen direkt
+
+        // Steg 2: Hämta roll i bakgrunden (blockar inte UI)
+        if (user) {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", user.id)
+              .maybeSingle();
+            if (isMounted) setRole((profile?.role as Role | null) ?? null);
+          } catch {
+            // roll förblir null
+          }
+        }
+      } catch {
         if (isMounted) setLoading(false);
       }
     })();
@@ -89,7 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
-      clearTimeout(fallback);
       subscription.unsubscribe();
     };
   }, []);
