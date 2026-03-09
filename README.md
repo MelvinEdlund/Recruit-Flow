@@ -1,5 +1,7 @@
 # RecruitFlow – Mini ATS
 
+🔗 **Live:** [melvinedlund.github.io/Recruit-Flow](https://melvinedlund.github.io/Recruit-Flow/)
+
 RecruitFlow är ett litet, produktionsredo ATS (Applicant Tracking System) byggt för att snabbt kunna sättas i händerna på en första kund. Det är en single-page React‑app med Supabase som backend (auth + databas).
 
 ## Funktioner
