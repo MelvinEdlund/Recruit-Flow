@@ -60,6 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
+    // Fallback: om Supabase inte svarar inom 5s, visa appen ändå
+    const fallback = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 5000);
+
     (async () => {
       try {
         const state = await getSessionWithProfile();
@@ -70,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Failed to fetch session/profile", error);
       } finally {
+        clearTimeout(fallback);
         if (isMounted) setLoading(false);
       }
     })();
@@ -83,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
+      clearTimeout(fallback);
       subscription.unsubscribe();
     };
   }, []);
