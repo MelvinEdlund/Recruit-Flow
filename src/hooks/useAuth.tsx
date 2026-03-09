@@ -9,7 +9,6 @@ import type { Session, User } from "@supabase/supabase-js";
 import type { Role } from "@/services/authService";
 import { supabase } from "@/lib/supabase";
 import {
-  listenToAuthChanges,
   login as authLogin,
   logout as authLogout,
 } from "@/services/authService";
@@ -60,47 +59,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    (async () => {
-      // Steg 1: Hämta session från localStorage – snabb, ingen nätverksanrop
-      // om token är giltig. Sätter loading=false direkt när vi vet user-status.
-      try {
-        const {
-          data: { session },
-        } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<any>((resolve) =>
-            setTimeout(() => resolve({ data: { session: null } }), 4000),
-          ),
-        ]);
-        if (!isMounted) return;
-        const user = session?.user ?? null;
-        setSession(session);
-        setUser(user);
-        setLoading(false); // Visa appen direkt
-
-        // Steg 2: Hämta roll i bakgrunden (blockar inte UI)
-        if (user) {
-          try {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", user.id)
-              .maybeSingle();
-            if (isMounted) setRole((profile?.role as Role | null) ?? null);
-          } catch {
-            // roll förblir null
-          }
-        }
-      } catch {
-        if (isMounted) setLoading(false);
-      }
-    })();
-
-    const subscription = listenToAuthChanges((state) => {
+    // onAuthStateChange ska INTE ha async awaits inuti — det kan deadlocka
+    // auth-tokensystemet i Supabase v2. Sätt bara session/user synkront.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
-      setSession(state.session);
-      setUser(state.user);
-      setRole(state.role);
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (!session) {
+        setRole(null);
+        setLoading(false);
+      }
+    });
+
+    // Hämta initial session direkt
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (!session) {
+        setRole(null);
+        setLoading(false);
+      }
     });
 
     return () => {
@@ -109,13 +90,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Hämta roll separat när user ändras — aldrig inuti onAuthStateChange
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data: profile }) => {
+        if (!isMounted) return;
+        setRole((profile?.role as Role | null) ?? null);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (error) throw error;
-    // Sätt state direkt så ProtectedRoute ser user omedelbart vid navigate
-    setSession(data.session);
-    setUser(data.user ?? null);
-    // Roll hämtas i bakgrunden av listenToAuthChanges
+    // onAuthStateChange handles setting user/session/role
   };
 
   const signOut = async () => {
