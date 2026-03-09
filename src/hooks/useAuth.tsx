@@ -64,7 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Steg 1: Hämta session från localStorage – snabb, ingen nätverksanrop
       // om token är giltig. Sätter loading=false direkt när vi vet user-status.
       try {
-        const { data: { session } } = await Promise.race([
+        const {
+          data: { session },
+        } = await Promise.race([
           supabase.auth.getSession(),
           new Promise<any>((resolve) =>
             setTimeout(() => resolve({ data: { session: null } }), 4000),
@@ -108,7 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await authLogin(email, password);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    // Sätt state direkt så ProtectedRoute ser user omedelbart vid navigate
+    setSession(data.session);
+    setUser(data.user ?? null);
+    // Roll hämtas i bakgrunden av listenToAuthChanges
   };
 
   const signOut = async () => {
