@@ -68,7 +68,7 @@ export async function updateUserRole(userId: string, role: Role) {
 }
 
 export async function deleteUserProfile(userId: string) {
-  const { error } = await supabase.from("profiles").delete().eq("id", userId);
+  const { error } = await supabase.rpc("delete_user", { user_id: userId });
   if (error) throw error;
 }
 
@@ -83,4 +83,3 @@ export function impersonateCustomer(customerId: string | null) {
 export function getImpersonatedCustomer() {
   return localStorage.getItem(IMPERSONATION_KEY);
 }
-

@@ -1,16 +1,31 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Building2, Briefcase, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import type { Role } from "@/services/adminService";
 import {
   createUser as createUserService,
@@ -26,6 +41,8 @@ import { deleteCandidate } from "@/services/candidateService";
 export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { impersonate } = useAuth();
   const [open, setOpen] = useState(false);
 
   // Fetch all profiles with roles
@@ -53,7 +70,15 @@ export default function Admin() {
   });
 
   const createUser = useMutation({
-    mutationFn: async ({ email, password, role }: { email: string; password: string; role: Role }) => {
+    mutationFn: async ({
+      email,
+      password,
+      role,
+    }: {
+      email: string;
+      password: string;
+      role: Role;
+    }) => {
       await createUserService({ email, password, role });
     },
     onSuccess: () => {
@@ -61,7 +86,8 @@ export default function Admin() {
       setOpen(false);
       toast({ title: "User created successfully" });
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) =>
+      toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const deleteCompanyMutation = useMutation({
@@ -113,7 +139,9 @@ export default function Admin() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-            <p className="text-sm text-muted-foreground">Manage users, companies, and jobs</p>
+            <p className="text-sm text-muted-foreground">
+              Manage users, companies, and jobs
+            </p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -143,7 +171,13 @@ export default function Admin() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type="password" minLength={6} required />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    minLength={6}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
@@ -157,7 +191,9 @@ export default function Admin() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
-                <Button type="submit" disabled={createUser.isPending}>Create User</Button>
+                <Button type="submit" disabled={createUser.isPending}>
+                  Create User
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -165,10 +201,18 @@ export default function Admin() {
 
         <Tabs defaultValue="users">
           <TabsList>
-            <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Users</TabsTrigger>
-            <TabsTrigger value="companies" className="gap-2"><Building2 className="h-4 w-4" /> Companies</TabsTrigger>
-            <TabsTrigger value="jobs" className="gap-2"><Briefcase className="h-4 w-4" /> Jobs</TabsTrigger>
-            <TabsTrigger value="candidates" className="gap-2"><Users className="h-4 w-4" /> Candidates</TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="h-4 w-4" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="companies" className="gap-2">
+              <Building2 className="h-4 w-4" /> Companies
+            </TabsTrigger>
+            <TabsTrigger value="jobs" className="gap-2">
+              <Briefcase className="h-4 w-4" /> Jobs
+            </TabsTrigger>
+            <TabsTrigger value="candidates" className="gap-2">
+              <Users className="h-4 w-4" /> Candidates
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -188,19 +232,39 @@ export default function Admin() {
                       <TableRow key={u.id}>
                         <TableCell className="font-medium">{u.email}</TableCell>
                         <TableCell>
-                          <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
+                          <Badge
+                            variant={
+                              u.role === "admin" ? "default" : "secondary"
+                            }
+                          >
+                            {u.role}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(u.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteUserMutation.mutate(u.id)}
-                          >
-                            Delete
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            {u.role === "customer" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  impersonate(u.id, u.email);
+                                  navigate("/kanban");
+                                }}
+                              >
+                                Act as
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteUserMutation.mutate(u.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -227,10 +291,13 @@ export default function Admin() {
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>
-                          {users?.find((u) => u.id === c.owner_id)?.email || c.owner_id}
+                          {users?.find((u) => u.id === c.owner_id)?.email ||
+                            c.owner_id}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(c.created_at).toLocaleDateString()}
+                          {c.created_at
+                            ? new Date(c.created_at).toLocaleDateString()
+                            : "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -265,16 +332,24 @@ export default function Admin() {
                   </TableHeader>
                   <TableBody>
                     {jobs?.map((j) => {
-                      const companyOwnerId = (j.companies as any)?.owner_id as string | undefined;
+                      const companyOwnerId = (j.companies as any)?.owner_id as
+                        | string
+                        | undefined;
                       const ownerEmail =
-                        users?.find((u) => u.id === companyOwnerId)?.email || companyOwnerId;
+                        users?.find((u) => u.id === companyOwnerId)?.email ||
+                        companyOwnerId;
                       return (
                         <TableRow key={j.id}>
-                          <TableCell className="font-medium">{j.title}</TableCell>
-                          <TableCell>{(j.companies as any)?.name || "—"}</TableCell>
+                          <TableCell className="font-medium">
+                            {j.title}
+                          </TableCell>
+                          <TableCell>
+                            {(j.companies as any)?.name || "—"}
+                          </TableCell>
                           <TableCell>{ownerEmail || "—"}</TableCell>
                           <TableCell>
-                            {candidates?.filter((c) => c.job_id === j.id).length ?? 0}
+                            {candidates?.filter((c) => c.job_id === j.id)
+                              .length ?? 0}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {new Date(j.created_at).toLocaleDateString()}
@@ -321,7 +396,9 @@ export default function Admin() {
 
                       return (
                         <TableRow key={c.id}>
-                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {c.name}
+                          </TableCell>
                           <TableCell>{c.email || "—"}</TableCell>
                           <TableCell>{job?.title || "—"}</TableCell>
                           <TableCell>{ownerEmail || "—"}</TableCell>
@@ -330,7 +407,9 @@ export default function Admin() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => deleteCandidateMutation.mutate(c.id)}
+                              onClick={() =>
+                                deleteCandidateMutation.mutate(c.id)
+                              }
                             >
                               Delete
                             </Button>

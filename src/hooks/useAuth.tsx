@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import type { Role } from "@/services/authService";
 import {
@@ -8,13 +14,32 @@ import {
   logout as authLogout,
 } from "@/services/authService";
 
+const IMPERSONATION_KEY = "recruitflow_impersonation";
+
+interface ImpersonationData {
+  id: string;
+  email: string;
+}
+
+function readImpersonation(): ImpersonationData | null {
+  try {
+    const s = localStorage.getItem(IMPERSONATION_KEY);
+    return s ? (JSON.parse(s) as ImpersonationData) : null;
+  } catch {
+    return null;
+  }
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   role: Role | null;
   loading: boolean;
+  impersonatedUserId: string | null;
+  impersonatedUserEmail: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  impersonate: (id: string | null, email?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
+  const stored = readImpersonation();
+  const [impersonatedUserId, setImpersonatedUserId] = useState<string | null>(
+    stored?.id ?? null,
+  );
+  const [impersonatedUserEmail, setImpersonatedUserEmail] = useState<
+    string | null
+  >(stored?.email ?? null);
 
   useEffect(() => {
     let isMounted = true;
@@ -62,10 +94,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await authLogout();
     setRole(null);
+    localStorage.removeItem(IMPERSONATION_KEY);
+    setImpersonatedUserId(null);
+    setImpersonatedUserEmail(null);
+  };
+
+  const impersonate = (id: string | null, email?: string) => {
+    if (id) {
+      localStorage.setItem(
+        IMPERSONATION_KEY,
+        JSON.stringify({ id, email: email ?? "" }),
+      );
+    } else {
+      localStorage.removeItem(IMPERSONATION_KEY);
+    }
+    setImpersonatedUserId(id);
+    setImpersonatedUserEmail(id ? (email ?? null) : null);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        role,
+        loading,
+        impersonatedUserId,
+        impersonatedUserEmail,
+        signIn,
+        signOut,
+        impersonate,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

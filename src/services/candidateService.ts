@@ -25,7 +25,12 @@ export async function fetchCandidatesForJob(id: string) {
 
 export async function addCandidateToJob(
   jobId: string,
-  candidate: { name: string; email: string; phone: string; linkedin_url: string },
+  candidate: {
+    name: string;
+    email: string;
+    phone: string;
+    linkedin_url: string;
+  },
 ) {
   const { error } = await supabase
     .from("candidates")
@@ -49,3 +54,11 @@ export async function deleteCandidate(id: string) {
   if (error) throw error;
 }
 
+export async function fetchAllCandidatesWithJobs() {
+  const { data, error } = await supabase
+    .from("candidates")
+    .select("*, jobs(id, title, companies(owner_id))")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}

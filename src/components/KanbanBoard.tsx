@@ -17,25 +17,57 @@ type Candidate = Database["public"]["Tables"]["candidates"]["Row"];
 type CandidateStage = Database["public"]["Enums"]["candidate_stage"];
 
 const STAGES: { id: CandidateStage; label: string; color: string }[] = [
-  { id: "applied", label: "Applied", color: "bg-blue-500/10 text-blue-700 border-blue-200" },
-  { id: "screening", label: "Screening", color: "bg-yellow-500/10 text-yellow-700 border-yellow-200" },
-  { id: "interview", label: "Interview", color: "bg-purple-500/10 text-purple-700 border-purple-200" },
-  { id: "offer", label: "Offer", color: "bg-emerald-500/10 text-emerald-700 border-emerald-200" },
-  { id: "hired", label: "Hired", color: "bg-green-500/10 text-green-700 border-green-200" },
-  { id: "rejected", label: "Rejected", color: "bg-red-500/10 text-red-700 border-red-200" },
+  {
+    id: "applied",
+    label: "Applied",
+    color: "bg-blue-500/10 text-blue-700 border-blue-200",
+  },
+  {
+    id: "screening",
+    label: "Screening",
+    color: "bg-yellow-500/10 text-yellow-700 border-yellow-200",
+  },
+  {
+    id: "interview",
+    label: "Interview",
+    color: "bg-purple-500/10 text-purple-700 border-purple-200",
+  },
+  {
+    id: "offer",
+    label: "Offer",
+    color: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+  },
+  {
+    id: "hired",
+    label: "Hired",
+    color: "bg-green-500/10 text-green-700 border-green-200",
+  },
+  {
+    id: "rejected",
+    label: "Rejected",
+    color: "bg-red-500/10 text-red-700 border-red-200",
+  },
 ];
 
 interface KanbanBoardProps {
   candidates: Candidate[];
   onStageChange: (candidateId: string, stage: CandidateStage) => void;
   onDeleteCandidate?: (id: string) => void;
+  jobTitles?: Record<string, string>;
 }
 
-export function KanbanBoard({ candidates, onStageChange, onDeleteCandidate }: KanbanBoardProps) {
-  const [activeCandidate, setActiveCandidate] = useState<Candidate | null>(null);
+export function KanbanBoard({
+  candidates,
+  onStageChange,
+  onDeleteCandidate,
+  jobTitles,
+}: KanbanBoardProps) {
+  const [activeCandidate, setActiveCandidate] = useState<Candidate | null>(
+    null,
+  );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -52,7 +84,11 @@ export function KanbanBoard({ candidates, onStageChange, onDeleteCandidate }: Ka
     const newStage = over.id as CandidateStage;
     const candidate = candidates.find((c) => c.id === candidateId);
 
-    if (candidate && candidate.stage !== newStage && STAGES.some((s) => s.id === newStage)) {
+    if (
+      candidate &&
+      candidate.stage !== newStage &&
+      STAGES.some((s) => s.id === newStage)
+    ) {
       onStageChange(candidateId, newStage);
     }
   };
@@ -71,6 +107,7 @@ export function KanbanBoard({ candidates, onStageChange, onDeleteCandidate }: Ka
             stage={stage}
             candidates={candidates.filter((c) => c.stage === stage.id)}
             onDeleteCandidate={onDeleteCandidate}
+            jobTitles={jobTitles}
           />
         ))}
       </div>
@@ -80,6 +117,7 @@ export function KanbanBoard({ candidates, onStageChange, onDeleteCandidate }: Ka
             candidate={activeCandidate}
             isDragging
             onDelete={onDeleteCandidate}
+            jobTitle={jobTitles?.[activeCandidate.job_id]}
           />
         ) : null}
       </DragOverlay>

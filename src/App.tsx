@@ -11,6 +11,7 @@ import Admin from "./pages/Admin";
 import JobDetail from "./pages/JobDetail";
 import NotFound from "./pages/NotFound";
 import Manage from "./pages/Manage";
+import Kanban from "./pages/Kanban";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Manage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kanban"
+              element={
+                <ProtectedRoute>
+                  <Kanban />
                 </ProtectedRoute>
               }
             />

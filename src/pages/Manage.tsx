@@ -3,7 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, Briefcase, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -41,15 +48,17 @@ export default function Manage() {
   const isAdmin = role === "admin";
 
   const companies = isAdmin
-    ? allCompanies ?? []
+    ? (allCompanies ?? [])
     : (allCompanies ?? []).filter((c) => c.owner_id === user?.id);
 
   const jobs = isAdmin
-    ? allJobs ?? []
-    : (allJobs ?? []).filter((j) => (j.companies as any)?.owner_id === user?.id);
+    ? (allJobs ?? [])
+    : (allJobs ?? []).filter(
+        (j) => (j.companies as any)?.owner_id === user?.id,
+      );
 
   const candidates = isAdmin
-    ? allCandidates ?? []
+    ? (allCandidates ?? [])
     : (allCandidates ?? []).filter((c) => {
         const job = c.jobs as any;
         const company = job?.companies as any;
@@ -133,7 +142,9 @@ export default function Manage() {
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(c.created_at).toLocaleDateString()}
+                          {c.created_at
+                            ? new Date(c.created_at).toLocaleDateString()
+                            : "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -148,7 +159,10 @@ export default function Manage() {
                     ))}
                     {!companies.length && (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                        <TableCell
+                          colSpan={3}
+                          className="text-center text-muted-foreground py-6"
+                        >
                           No companies yet.
                         </TableCell>
                       </TableRow>
@@ -178,7 +192,9 @@ export default function Manage() {
                     {jobs.map((j) => (
                       <TableRow key={j.id}>
                         <TableCell className="font-medium">{j.title}</TableCell>
-                        <TableCell>{(j.companies as any)?.name || "—"}</TableCell>
+                        <TableCell>
+                          {(j.companies as any)?.name || "—"}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(j.created_at).toLocaleDateString()}
                         </TableCell>
@@ -195,7 +211,10 @@ export default function Manage() {
                     ))}
                     {!jobs.length && (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                        <TableCell
+                          colSpan={4}
+                          className="text-center text-muted-foreground py-6"
+                        >
                           No jobs yet.
                         </TableCell>
                       </TableRow>
@@ -242,7 +261,10 @@ export default function Manage() {
                     ))}
                     {!candidates.length && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                        <TableCell
+                          colSpan={5}
+                          className="text-center text-muted-foreground py-6"
+                        >
                           No candidates yet.
                         </TableCell>
                       </TableRow>
@@ -257,4 +279,3 @@ export default function Manage() {
     </AppLayout>
   );
 }
-

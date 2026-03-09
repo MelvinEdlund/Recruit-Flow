@@ -8,9 +8,15 @@ interface CandidateCardProps {
   candidate: Candidate;
   isDragging?: boolean;
   onDelete?: (id: string) => void;
+  jobTitle?: string;
 }
 
-export function CandidateCard({ candidate, isDragging, onDelete }: CandidateCardProps) {
+export function CandidateCard({
+  candidate,
+  isDragging,
+  onDelete,
+  jobTitle,
+}: CandidateCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: candidate.id,
   });
@@ -30,6 +36,11 @@ export function CandidateCard({ candidate, isDragging, onDelete }: CandidateCard
       }`}
     >
       <p className="font-medium text-sm text-foreground">{candidate.name}</p>
+      {jobTitle && (
+        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+          {jobTitle}
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap gap-2 items-center">
         {candidate.email && (
           <a
