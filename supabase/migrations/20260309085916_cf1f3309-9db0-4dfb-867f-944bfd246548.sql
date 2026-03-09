@@ -1,0 +1,1 @@
+-- Placeholder migration reserved for future RLS refinements.
